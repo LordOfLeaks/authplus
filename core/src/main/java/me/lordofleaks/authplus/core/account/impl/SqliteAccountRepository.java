@@ -1,0 +1,37 @@
+package me.lordofleaks.authplus.core.account.impl;
+
+import me.lordofleaks.authplus.core.account.AccountRepository;
+import org.sqlite.SQLiteDataSource;
+
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class SqliteAccountRepository extends SqlAccountRepository {
+
+    private final ExecutorService exec;
+
+    public SqliteAccountRepository(String file) {
+        this.exec = Executors.newSingleThreadExecutor();
+        SQLiteDataSource ds = new SQLiteDataSource();
+        ds.setUrl("jdbc:sqlite:" + file);
+        setDataSource(ds);
+        initialize();
+    }
+
+    public static void main(String[] args) {
+        AccountRepository repository = new SqliteAccountRepository("test.db");
+        repository.close();
+    }
+
+    @Override
+    public void close() {
+        super.close();
+        exec.shutdown();
+    }
+
+    @Override
+    protected Executor getExecutor() {
+        return exec;
+    }
+}
