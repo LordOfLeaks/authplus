@@ -46,6 +46,13 @@ public class MojangApiImpl implements MojangApi {
     private static final String ID_PREFIX = "\"id\":\"";
     private static final int ID_LENGTH = 32;
 
+    /**
+     * Reads the uuid from the response sent by Mojang api.
+     * It is faster than parsing entire JSON.
+     *
+     * @param response JSON response from Mojang api.
+     * @return Decoded UUID
+     */
     private static UUID fastUuidDecode(String response) {
         String id = null;
         for (int i = 0; i < response.length() - ID_PREFIX.length() - ID_LENGTH; i++) {
