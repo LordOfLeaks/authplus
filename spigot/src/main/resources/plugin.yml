@@ -2,3 +2,14 @@ main: me.lordofleaks.authplus.spigot.Main
 version: ${project.version}
 author: LordOfLeaks (awesomestuff)
 name: AuthPlus
+commands:
+  register:
+    description: "Used to register new account of calling user."
+  login:
+    description: "Used to login into calling user's account."
+  changepassword:
+    aliases: [changepass]
+    description: "Used to change password of calling user's account."
+  authplus:
+    permission: authplus.admin
+    description: "Provides commands used to perform administrative tasks."

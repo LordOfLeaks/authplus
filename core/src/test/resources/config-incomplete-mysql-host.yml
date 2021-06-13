@@ -1,0 +1,14 @@
+authplus:
+  encryption:
+    iteration-count: 4000
+  storage:
+    type: "MYSQL"
+    username: "test"
+    password: "qwerty"
+    database: "testdb"
+    port: 3333
+  bungee-cord: false
+  deop-on-join: false
+  allowed-login-commands:
+    - "/somecommand"
+    - "/someothercommand"

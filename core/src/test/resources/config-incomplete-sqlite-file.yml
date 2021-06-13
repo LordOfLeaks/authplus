@@ -1,0 +1,10 @@
+authplus:
+  encryption:
+    iteration-count: 4000
+  storage:
+    type: "SQLITE"
+  bungee-cord: false
+  deop-on-join: false
+  allowed-login-commands:
+    - "/somecommand"
+    - "/someothercommand"

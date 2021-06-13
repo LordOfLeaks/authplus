@@ -16,6 +16,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.List;
@@ -34,10 +35,14 @@ public class AuthPlusConfiguration {
          * Iteration count used to create PBEKey.
          */
         @JsonProperty("iteration-count")
-        private int iterationCount = 5000;
+        private int iterationCount;
 
         private void validate() {
             must(iterationCount > 0, "Iteration count must be positive.");
+        }
+
+        private void fillDefaults() {
+            this.iterationCount = 5000;
         }
     }
 
@@ -51,9 +56,9 @@ public class AuthPlusConfiguration {
             MYSQL
         }
 
-        private Type type = Type.SQLITE;
+        private Type type;
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        private String file = "authplus.db";
+        private String file;
 
         @JsonInclude(JsonInclude.Include.NON_NULL)
         private String host;
@@ -82,19 +87,38 @@ public class AuthPlusConfiguration {
                     throw new AuthPlusConfigException("Unknown storage type.");
             }
         }
+
+        private void fillDefaults() {
+            this.type = Type.SQLITE;
+            this.file = "authplus.db";
+        }
     }
 
     private Encryption encryption = new Encryption();
     private Storage storage = new Storage();
 
     @JsonProperty("bungee-cord")
-    private boolean bungeeCord = false;
+    private boolean bungeeCord;
 
     @JsonProperty("deop-on-join")
-    private boolean deOpOnJoin = false;
+    private boolean deOpOnJoin;
 
     @JsonProperty("allowed-login-commands")
-    private List<String> allowedLoginCommands = Arrays.asList("/somecommand", "/someothercommand");
+    private List<String> allowedLoginCommands;
+
+    public void fillDefaults() {
+        this.bungeeCord = false;
+        this.deOpOnJoin = false;
+        this.allowedLoginCommands = Arrays.asList("/somecommand", "/someothercommand");
+        this.storage = new Storage();
+        this.storage.fillDefaults();
+        this.encryption = new Encryption();
+        this.encryption.fillDefaults();
+    }
+
+    public static void main(String[] args) {
+        load(Paths.get("test.yml"));
+    }
 
     /**
      * Loads AuthPlusConfiguration or it creates if not exists from given file in YAML format.
@@ -122,6 +146,7 @@ public class AuthPlusConfiguration {
         } else {
             try {
                 cfg = new AuthPlusConfiguration();
+                cfg.fillDefaults();
                 if (path.getParent() != null)
                     Files.createDirectories(path.getParent());
                 try (OutputStream os = Files.newOutputStream(path, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
@@ -138,6 +163,7 @@ public class AuthPlusConfiguration {
     }
 
     private void validate() {
+        must(allowedLoginCommands != null, "Allowed commands must be defined.");
         must(encryption != null, "Encryption section must be defined.");
         encryption.validate();
 

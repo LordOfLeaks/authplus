@@ -18,6 +18,12 @@
             <version>1.8-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>me.lordofleaks.authplus</groupId>
+            <artifactId>authplus-core</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <build>

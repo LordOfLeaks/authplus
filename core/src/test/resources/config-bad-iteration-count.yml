@@ -1,0 +1,14 @@
+authplus:
+  encryption:
+    iteration-count: 0
+  storage:
+    type: "MYSQL"
+    username: "test"
+    database: "testdb"
+    host: "localhost"
+    port: 3333
+  bungee-cord: false
+  deop-on-join: false
+  allowed-login-commands:
+    - "/somecommand"
+    - "/someothercommand"
