@@ -32,4 +32,13 @@ public class Account {
      */
     private boolean registeredPremium;
 
+    //Return copy to avoid modifying
+    public byte[] getPassword() {
+        return password.clone();
+    }
+
+    //Return copy to avoid modifying
+    public byte[] getSalt() {
+        return salt.clone();
+    }
 }

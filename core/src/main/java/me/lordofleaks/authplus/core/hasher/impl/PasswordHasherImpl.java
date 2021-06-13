@@ -1,11 +1,14 @@
 package me.lordofleaks.authplus.core.hasher.impl;
 
+import me.lordofleaks.authplus.core.AuthPlusLoader;
+import me.lordofleaks.authplus.core.config.AuthPlusConfiguration;
 import me.lordofleaks.authplus.core.hasher.PasswordHasher;
 import me.lordofleaks.authplus.core.hasher.PasswordHasherException;
 
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import java.security.SecureRandom;
+import java.util.ServiceLoader;
 import java.util.concurrent.CompletableFuture;
 
 public class PasswordHasherImpl implements PasswordHasher {

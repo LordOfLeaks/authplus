@@ -1,6 +1,7 @@
 package me.lordofleaks.authplus.core.account.impl;
 
 import me.lordofleaks.authplus.core.account.AccountRepository;
+import org.jetbrains.annotations.NotNull;
 import org.sqlite.SQLiteDataSource;
 
 import java.util.concurrent.Executor;
@@ -31,7 +32,7 @@ public class SqliteAccountRepository extends SqlAccountRepository {
     }
 
     @Override
-    protected Executor getExecutor() {
+    protected @NotNull Executor getExecutor() {
         return exec;
     }
 }

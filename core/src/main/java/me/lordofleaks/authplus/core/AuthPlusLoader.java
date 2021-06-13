@@ -2,23 +2,27 @@ package me.lordofleaks.authplus.core;
 
 import me.lordofleaks.authplus.core.config.AuthPlusConfiguration;
 
-import java.util.function.Function;
+import java.util.Iterator;
+import java.util.ServiceLoader;
 
 public class AuthPlusLoader {
 
-    public static Function<AuthPlusConfiguration, AuthPlusCore> loadFun;
+    public static ServiceLoader<AuthPlusCoreFactory> coreFactories = ServiceLoader.load(AuthPlusCoreFactory.class);
 
     private AuthPlusLoader() {
         throw new AssertionError();
     }
 
+    /**
+     * Loads instance of AuthPlusCore using Java SPI.
+     * @param config Config of loaded AuthPlusCore.
+     * @return Loaded AuthPlusCore.
+     */
     public static AuthPlusCore load(AuthPlusConfiguration config) {
-        assert loadFun != null;
-        return loadFun.apply(config);
-    }
-
-    public static synchronized void initialize(Function<AuthPlusConfiguration, AuthPlusCore> f) {
-        if(loadFun != null) throw new IllegalStateException("Already initialised");
-        loadFun = f;
+        coreFactories.reload();
+        Iterator<AuthPlusCoreFactory> factories = coreFactories.iterator();
+        if(!factories.hasNext())
+            throw new AuthPlusException("Cannot find any core factories.");
+        return factories.next().newCore(config);
     }
 }

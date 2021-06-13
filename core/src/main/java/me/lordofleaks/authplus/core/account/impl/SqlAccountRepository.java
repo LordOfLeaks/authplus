@@ -4,6 +4,7 @@ import com.zaxxer.hikari.HikariDataSource;
 import me.lordofleaks.authplus.core.account.Account;
 import me.lordofleaks.authplus.core.account.AccountRepository;
 import me.lordofleaks.authplus.core.account.AccountRepositoryException;
+import org.jetbrains.annotations.NotNull;
 
 import javax.sql.DataSource;
 import java.io.Closeable;
@@ -24,11 +25,12 @@ public abstract class SqlAccountRepository implements AccountRepository {
         this.dataSource = dataSource;
     }
 
+    @NotNull
     protected abstract Executor getExecutor();
 
     @Override
     public void close() {
-        if(dataSource instanceof Closeable) {
+        if (dataSource instanceof Closeable) {
             try {
                 ((Closeable) dataSource).close();
             } catch (IOException e) {
@@ -37,27 +39,25 @@ public abstract class SqlAccountRepository implements AccountRepository {
         }
     }
 
-    protected CompletableFuture<Void> initialize() {
-        return CompletableFuture.runAsync(() -> {
-            try (Connection conn = dataSource.getConnection();
-                 Statement stmt = conn.createStatement()) {
-                stmt.execute("CREATE TABLE IF NOT EXISTS `authplus_account` (" +
-                        "`id_most` BIGINT NOT NULL, " +
-                        "`id_least` BIGINT NOT NULL, " +
-                        "`name` VARCHAR(16) UNIQUE NOT NULL, " +
-                        "`password` BLOB(64) NOT NULL, " +
-                        "`salt` BLOB(16) NOT NULL, " +
-                        "`premium` TINYINT(1) NOT NULL, " +
-                        "PRIMARY KEY(`id_most`, `id_least`)" +
-                        ");");
-            } catch (Exception e) {
-                throw new AccountRepositoryException("Cannot initialize repository", e);
-            }
-        }, getExecutor());
+    protected void initialize() {
+        try (Connection conn = dataSource.getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TABLE IF NOT EXISTS `authplus_account` (" +
+                    "`id_most` BIGINT NOT NULL, " +
+                    "`id_least` BIGINT NOT NULL, " +
+                    "`name` VARCHAR(16) UNIQUE NOT NULL, " +
+                    "`password` BLOB(64) NOT NULL, " +
+                    "`salt` BLOB(16) NOT NULL, " +
+                    "`premium` TINYINT(1) NOT NULL, " +
+                    "PRIMARY KEY(`id_most`, `id_least`)" +
+                    ");");
+        } catch (Exception e) {
+            throw new AccountRepositoryException("Cannot initialize repository", e);
+        }
     }
 
     @Override
-    public CompletableFuture<Account> getAccountByUuid(UUID uuid) {
+    public @NotNull CompletableFuture<Account> getAccountByUuid(UUID uuid) {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection conn = dataSource.getConnection();
                  PreparedStatement stmt = conn.prepareStatement("SELECT * FROM `authplus_account`" +
@@ -82,7 +82,7 @@ public abstract class SqlAccountRepository implements AccountRepository {
     }
 
     @Override
-    public CompletableFuture<Void> insertAccount(Account account) {
+    public @NotNull CompletableFuture<Void> insertAccount(Account account) {
         String name = account.getName();
         byte[] passwd = account.getPassword().clone();
         byte[] salt = account.getSalt().clone();
@@ -105,7 +105,7 @@ public abstract class SqlAccountRepository implements AccountRepository {
     }
 
     @Override
-    public CompletableFuture<Void> updateAccount(Account account) {
+    public @NotNull CompletableFuture<Void> updateAccount(Account account) {
         byte[] passwd = account.getPassword().clone();
         byte[] salt = account.getSalt().clone();
         boolean premium = account.isRegisteredPremium();

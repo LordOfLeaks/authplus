@@ -34,7 +34,13 @@ public class AuthPlusCoreImpl implements AuthPlusCore {
         this.accountValidator = new AccountValidatorImpl();
         switch (configuration.getStorage().getType()) {
             case MYSQL:
-                this.accountRepository = new MysqlAccountRepository(configuration.getStorage().getHost(), configuration.getStorage().getPort(), configuration.getStorage().getDatabase(), configuration.getStorage().getUsername(), configuration.getStorage().getPassword());
+                this.accountRepository = new MysqlAccountRepository(
+                        configuration.getStorage().getHost(),
+                        configuration.getStorage().getPort(),
+                        configuration.getStorage().getDatabase(),
+                        configuration.getStorage().getUsername(),
+                        configuration.getStorage().getPassword()
+                );
                 break;
             case SQLITE:
                 this.accountRepository = new SqliteAccountRepository(configuration.getStorage().getFile());
@@ -42,5 +48,10 @@ public class AuthPlusCoreImpl implements AuthPlusCore {
             default:
                 throw new AuthPlusException("Unknown storage type");
         }
+    }
+
+    @Override
+    public void close() {
+        accountRepository.close();
     }
 }

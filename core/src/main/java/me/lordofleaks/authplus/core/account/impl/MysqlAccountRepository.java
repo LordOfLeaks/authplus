@@ -2,6 +2,7 @@ package me.lordofleaks.authplus.core.account.impl;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
@@ -32,7 +33,7 @@ public class MysqlAccountRepository extends SqlAccountRepository {
     }
 
     @Override
-    protected Executor getExecutor() {
+    protected @NotNull Executor getExecutor() {
         return ForkJoinPool.commonPool();
     }
 }

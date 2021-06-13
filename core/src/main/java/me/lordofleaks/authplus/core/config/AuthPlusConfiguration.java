@@ -4,20 +4,21 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.jetbrains.annotations.NotNull;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -66,14 +67,19 @@ public class AuthPlusConfiguration {
         private String database;
 
         private void validate() {
-            must(type != null, "Storage type be defined");
-            if(type == Type.SQLITE) {
-                must(file != null, "File must be defined for SQLite");
-            } else if(type == Type.MYSQL) {
-                must(host != null, "Host must be defined for MySQL");
-                must(port != null, "Port must be defined for MySQL");
-                must(username != null, "Username must be defined for MySQL");
-                must(database != null, "Database must be defined for MySQL");
+            must(type != null, "Storage type be defined.");
+            switch (type) {
+                case SQLITE:
+                    must(file != null, "File must be defined for SQLite.");
+                    break;
+                case MYSQL:
+                    must(host != null, "Host must be defined for MySQL.");
+                    must(port != null, "Port must be defined for MySQL.");
+                    must(username != null, "Username must be defined for MySQL.");
+                    must(database != null, "Database must be defined for MySQL.");
+                    break;
+                default:
+                    throw new AuthPlusConfigException("Unknown storage type.");
             }
         }
     }
@@ -90,7 +96,16 @@ public class AuthPlusConfiguration {
     @JsonProperty("allowed-login-commands")
     private List<String> allowedLoginCommands = Arrays.asList("/somecommand", "/someothercommand");
 
-    public static AuthPlusConfiguration load(Path path) throws IOException {
+    /**
+     * Loads AuthPlusConfiguration or it creates if not exists from given file in YAML format.
+     * Then validates loaded configuration.
+     *
+     * @param path Path to the file.
+     * @return Loaded AuthPlusConfiguration.
+     */
+    @NotNull
+    public static AuthPlusConfiguration load(Path path) {
+        path = path.toAbsolutePath();
         YAMLFactory factory = new YAMLFactory();
         factory.enable(YAMLGenerator.Feature.SPLIT_LINES);
         factory.enable(YAMLGenerator.Feature.INDENT_ARRAYS);
@@ -100,13 +115,22 @@ public class AuthPlusConfiguration {
         AuthPlusConfiguration cfg;
         if (Files.exists(path)) {
             try (InputStream is = Files.newInputStream(path, StandardOpenOption.READ)) {
-                cfg = mapper.readValue(is, AuthPlusConfiguration.class);
+                cfg = mapper.treeToValue(mapper.readTree(is).get("authplus"), AuthPlusConfiguration.class);
+            } catch (Exception e) {
+                throw new AuthPlusConfigException("Config load failed.", e);
             }
         } else {
-            cfg = new AuthPlusConfiguration();
-            Files.createDirectories(path.getParent());
-            try (OutputStream os = Files.newOutputStream(path, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
-                mapper.writeValue(os, cfg);
+            try {
+                cfg = new AuthPlusConfiguration();
+                if (path.getParent() != null)
+                    Files.createDirectories(path.getParent());
+                try (OutputStream os = Files.newOutputStream(path, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
+                    ObjectNode root = mapper.createObjectNode();
+                    root.set("authplus", mapper.valueToTree(cfg));
+                    mapper.writeTree(mapper.createGenerator(os), root);
+                }
+            }  catch (Exception e) {
+                throw new AuthPlusConfigException("Config creation failed.", e);
             }
         }
         cfg.validate();
@@ -114,14 +138,14 @@ public class AuthPlusConfiguration {
     }
 
     private void validate() {
-        must(encryption != null, "Encryption section must be defined");
+        must(encryption != null, "Encryption section must be defined.");
         encryption.validate();
 
-        must(storage != null, "Storage section must be defined");
+        must(storage != null, "Storage section must be defined.");
         storage.validate();
     }
 
     private static void must(boolean b, String failMsg) {
-        if (!b) throw new IllegalStateException(failMsg);
+        if (!b) throw new AuthPlusConfigException(failMsg);
     }
 }
