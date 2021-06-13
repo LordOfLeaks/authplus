@@ -16,6 +16,7 @@ public interface SessionStorage {
     /**
      * Creates new session with given account name
      * and returns its instance.
+     * If session is already present - replaces it with new one.
      *
      * @param accountName Account name of created session.
      * @return Created session.

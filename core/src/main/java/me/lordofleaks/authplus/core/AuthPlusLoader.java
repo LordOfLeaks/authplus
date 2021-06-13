@@ -7,7 +7,7 @@ import java.util.ServiceLoader;
 
 public class AuthPlusLoader {
 
-    public static ServiceLoader<AuthPlusCoreFactory> coreFactories = ServiceLoader.load(AuthPlusCoreFactory.class);
+    private static final ServiceLoader<AuthPlusCoreFactory> coreFactories = ServiceLoader.load(AuthPlusCoreFactory.class);
 
     private AuthPlusLoader() {
         throw new AssertionError();
@@ -19,7 +19,6 @@ public class AuthPlusLoader {
      * @return Loaded AuthPlusCore.
      */
     public static AuthPlusCore load(AuthPlusConfiguration config) {
-        coreFactories.reload();
         Iterator<AuthPlusCoreFactory> factories = coreFactories.iterator();
         if(!factories.hasNext())
             throw new AuthPlusException("Cannot find any core factories.");

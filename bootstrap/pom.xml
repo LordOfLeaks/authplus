@@ -11,5 +11,22 @@
 
     <artifactId>authplus-bootstrap</artifactId>
 
+    <dependencies>
+        <dependency>
+            <groupId>me.lordofleaks.authplus</groupId>
+            <artifactId>authplus-bungee</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>me.lordofleaks.authplus</groupId>
+            <artifactId>authplus-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>me.lordofleaks.authplus</groupId>
+            <artifactId>authplus-spigot</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
 
 </project>

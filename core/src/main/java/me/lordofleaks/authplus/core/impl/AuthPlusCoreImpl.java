@@ -13,6 +13,7 @@ import me.lordofleaks.authplus.core.hasher.PasswordHasher;
 import me.lordofleaks.authplus.core.hasher.impl.PasswordHasherImpl;
 import me.lordofleaks.authplus.core.mojang.MojangApi;
 import me.lordofleaks.authplus.core.mojang.impl.MojangApiImpl;
+import me.lordofleaks.authplus.core.mojang.impl.MojangApiResponseParserImpl;
 import me.lordofleaks.authplus.core.session.SessionStorage;
 import me.lordofleaks.authplus.core.session.impl.SessionStorageImpl;
 
@@ -29,7 +30,7 @@ public class AuthPlusCoreImpl implements AuthPlusCore {
     public AuthPlusCoreImpl(AuthPlusConfiguration configuration) {
         this.configuration = configuration;
         this.passwordHasher = new PasswordHasherImpl(configuration.getEncryption().getIterationCount());
-        this.mojangApi = new MojangApiImpl();
+        this.mojangApi = new MojangApiImpl(new MojangApiResponseParserImpl());
         this.sessionStorage = new SessionStorageImpl();
         this.accountValidator = new AccountValidatorImpl();
         switch (configuration.getStorage().getType()) {

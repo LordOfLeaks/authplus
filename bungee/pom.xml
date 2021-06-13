@@ -23,10 +23,16 @@
             <groupId>net.md-5</groupId>
             <artifactId>bungeecord-api</artifactId>
             <version>1.9-SNAPSHOT</version>
-            <type>jar</type>
             <scope>provided</scope>
         </dependency>
     </dependencies>
 
-
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+    </build>
 </project>

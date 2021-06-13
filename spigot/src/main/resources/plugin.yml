@@ -1,0 +1,4 @@
+main: me.lordofleaks.authplus.spigot.Main
+version: ${project.version}
+author: LordOfLeaks (awesomestuff)
+name: AuthPlus
