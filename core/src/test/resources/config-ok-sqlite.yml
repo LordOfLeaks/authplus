@@ -4,7 +4,6 @@ authplus:
   storage:
     type: "SQLITE"
     file: "authplus.db"
-  bungee-cord: false
   deop-on-join: false
   allowed-login-commands:
     - "/somecommand"

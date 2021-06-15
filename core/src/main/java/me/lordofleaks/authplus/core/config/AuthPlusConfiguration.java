@@ -12,6 +12,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -97,9 +98,6 @@ public class AuthPlusConfiguration {
     private Encryption encryption = new Encryption();
     private Storage storage = new Storage();
 
-    @JsonProperty("bungee-cord")
-    private boolean bungeeCord;
-
     @JsonProperty("deop-on-join")
     private boolean deOpOnJoin;
 
@@ -107,17 +105,12 @@ public class AuthPlusConfiguration {
     private List<String> allowedLoginCommands;
 
     public void fillDefaults() {
-        this.bungeeCord = false;
         this.deOpOnJoin = false;
         this.allowedLoginCommands = Arrays.asList("/somecommand", "/someothercommand");
         this.storage = new Storage();
         this.storage.fillDefaults();
         this.encryption = new Encryption();
         this.encryption.fillDefaults();
-    }
-
-    public static void main(String[] args) {
-        load(Paths.get("test.yml"));
     }
 
     /**
@@ -140,21 +133,22 @@ public class AuthPlusConfiguration {
         if (Files.exists(path)) {
             try (InputStream is = Files.newInputStream(path, StandardOpenOption.READ)) {
                 cfg = mapper.treeToValue(mapper.readTree(is).get("authplus"), AuthPlusConfiguration.class);
-            } catch (Exception e) {
+            } catch (IOException e) {
                 throw new AuthPlusConfigException("Config load failed.", e);
             }
         } else {
             try {
                 cfg = new AuthPlusConfiguration();
                 cfg.fillDefaults();
-                if (path.getParent() != null)
-                    Files.createDirectories(path.getParent());
+                Path parent = path.getParent();
+                if (parent != null)
+                    Files.createDirectories(parent);
                 try (OutputStream os = Files.newOutputStream(path, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
                     ObjectNode root = mapper.createObjectNode();
                     root.set("authplus", mapper.valueToTree(cfg));
                     mapper.writeTree(mapper.createGenerator(os), root);
                 }
-            }  catch (Exception e) {
+            }  catch (IOException e) {
                 throw new AuthPlusConfigException("Config creation failed.", e);
             }
         }

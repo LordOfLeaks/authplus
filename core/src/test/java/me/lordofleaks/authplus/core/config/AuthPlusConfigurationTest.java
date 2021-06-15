@@ -26,7 +26,6 @@ class AuthPlusConfigurationTest {
         assertNull(cfg.getStorage().getHost());
         assertNull(cfg.getStorage().getPort());
         assertNull(cfg.getStorage().getDatabase());
-        assertFalse(cfg.isBungeeCord());
         assertFalse(cfg.isDeOpOnJoin());
     }
 
@@ -42,7 +41,6 @@ class AuthPlusConfigurationTest {
         assertEquals("localhost", cfg.getStorage().getHost());
         assertEquals(3333, cfg.getStorage().getPort());
         assertEquals("testdb", cfg.getStorage().getDatabase());
-        assertFalse(cfg.isBungeeCord());
         assertFalse(cfg.isDeOpOnJoin());
     }
 
@@ -58,7 +56,6 @@ class AuthPlusConfigurationTest {
         assertEquals("localhost", cfg.getStorage().getHost());
         assertEquals(3333, cfg.getStorage().getPort());
         assertEquals("testdb", cfg.getStorage().getDatabase());
-        assertFalse(cfg.isBungeeCord());
         assertFalse(cfg.isDeOpOnJoin());
     }
 
@@ -74,7 +71,6 @@ class AuthPlusConfigurationTest {
         assertEquals("localhost", cfg.getStorage().getHost());
         assertEquals(3333, cfg.getStorage().getPort());
         assertEquals("testdb", cfg.getStorage().getDatabase());
-        assertFalse(cfg.isBungeeCord());
         assertFalse(cfg.isDeOpOnJoin());
     }
 

@@ -11,5 +11,4 @@ commands:
     aliases: [changepass]
     description: "Used to change password of calling user's account."
   authplus:
-    permission: authplus.admin
     description: "Provides commands used to perform administrative tasks."

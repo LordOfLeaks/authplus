@@ -1,14 +1,17 @@
 package me.lordofleaks.authplus.core.account;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
+import me.lordofleaks.authplus.core.session.Session;
 
 import java.util.UUID;
 
 @Getter
 @Setter
-@RequiredArgsConstructor
+@EqualsAndHashCode
 public class Account {
 
     /**
@@ -31,14 +34,29 @@ public class Account {
      * Whether this account was registered by a premium user.
      */
     private boolean registeredPremium;
+    /**
+     * Whether this account is present in the database.
+     */
+    private boolean registered;
 
-    //Return copy to avoid modifying
+    public Account(@JsonProperty("uniqueId") UUID uniqueId) {
+        this.uniqueId = uniqueId;
+    }
+
     public byte[] getPassword() {
-        return password.clone();
+        return password == null ? null : password.clone();
     }
 
-    //Return copy to avoid modifying
     public byte[] getSalt() {
-        return salt.clone();
+        return salt == null ? null : salt.clone();
     }
+
+    public void setPassword(byte[] password) {
+        this.password = password == null ? null : password.clone();
+    }
+
+    public void setSalt(byte[] salt) {
+        this.salt = salt == null ? null : salt.clone();
+    }
+
 }

@@ -1,4 +1,4 @@
-main: me.lordofleaks.authplus.spigot.Main
+main: me.lordofleaks.authplus.bungee.Main
 version: ${project.version}
 author: LordOfLeaks (awesomestuff)
 name: AuthPlus

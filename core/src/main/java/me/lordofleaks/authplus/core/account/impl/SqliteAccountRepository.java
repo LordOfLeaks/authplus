@@ -20,11 +20,6 @@ public class SqliteAccountRepository extends SqlAccountRepository {
         initialize();
     }
 
-    public static void main(String[] args) {
-        AccountRepository repository = new SqliteAccountRepository("test.db");
-        repository.close();
-    }
-
     @Override
     public void close() {
         super.close();

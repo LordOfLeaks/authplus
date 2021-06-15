@@ -3,7 +3,6 @@ authplus:
     iteration-count: 4000
   storage:
     type: "BADTYPE"
-  bungee-cord: false
   deop-on-join: false
   allowed-login-commands:
     - "/somecommand"

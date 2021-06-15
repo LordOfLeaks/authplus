@@ -8,14 +8,20 @@ import me.lordofleaks.authplus.core.account.AccountValidator;
 import me.lordofleaks.authplus.core.account.impl.AccountValidatorImpl;
 import me.lordofleaks.authplus.core.account.impl.MysqlAccountRepository;
 import me.lordofleaks.authplus.core.account.impl.SqliteAccountRepository;
+import me.lordofleaks.authplus.core.comm.Communicator;
+import me.lordofleaks.authplus.core.comm.impl.JsonCommunicator;
 import me.lordofleaks.authplus.core.config.AuthPlusConfiguration;
 import me.lordofleaks.authplus.core.hasher.PasswordHasher;
 import me.lordofleaks.authplus.core.hasher.impl.PasswordHasherImpl;
+import me.lordofleaks.authplus.core.login.LoginEngine;
+import me.lordofleaks.authplus.core.login.impl.PremiumAwareLoginEngine;
 import me.lordofleaks.authplus.core.mojang.MojangApi;
 import me.lordofleaks.authplus.core.mojang.impl.MojangApiImpl;
 import me.lordofleaks.authplus.core.mojang.impl.MojangApiResponseParserImpl;
 import me.lordofleaks.authplus.core.session.SessionStorage;
 import me.lordofleaks.authplus.core.session.impl.SessionStorageImpl;
+
+import java.nio.file.Path;
 
 @Getter
 public class AuthPlusCoreImpl implements AuthPlusCore {
@@ -26,8 +32,10 @@ public class AuthPlusCoreImpl implements AuthPlusCore {
     private final SessionStorage sessionStorage;
     private final AccountValidator accountValidator;
     private final AccountRepository accountRepository;
+    private final Communicator communicator;
+    private final LoginEngine loginEngine;
 
-    public AuthPlusCoreImpl(AuthPlusConfiguration configuration) {
+    public AuthPlusCoreImpl(Path workdir, AuthPlusConfiguration configuration) {
         this.configuration = configuration;
         this.passwordHasher = new PasswordHasherImpl(configuration.getEncryption().getIterationCount());
         this.mojangApi = new MojangApiImpl(new MojangApiResponseParserImpl());
@@ -44,11 +52,13 @@ public class AuthPlusCoreImpl implements AuthPlusCore {
                 );
                 break;
             case SQLITE:
-                this.accountRepository = new SqliteAccountRepository(configuration.getStorage().getFile());
+                this.accountRepository = new SqliteAccountRepository(workdir.resolve(configuration.getStorage().getFile()).toString());
                 break;
             default:
                 throw new AuthPlusException("Unknown storage type");
         }
+        this.communicator = new JsonCommunicator(this, 5);
+        this.loginEngine = new PremiumAwareLoginEngine(accountValidator, accountRepository, mojangApi);
     }
 
     @Override

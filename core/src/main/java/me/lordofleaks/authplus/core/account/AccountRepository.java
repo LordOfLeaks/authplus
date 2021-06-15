@@ -13,24 +13,23 @@ public interface AccountRepository {
     void close();
 
     /**
+     * Gets account by provided name from the repository.
+     * @param name Name of the account.
+     * @return Future returning account with given name or {@code null} if not found.
+     */
+    @NotNull
+    CompletableFuture<Account> getAccountByName(String name);
+
+    /**
      * Gets account by provided UUID from the repository.
      * @param uuid UUID of the account.
-     * @return Future returning account with given UUID or {@code null} if not found.
+     * @return Future returning account with given unique id or {@code null} if not found.
      */
     @NotNull
-    CompletableFuture<Account> getAccountByUuid(UUID uuid);
+    CompletableFuture<Account> getAccountByUniqueId(UUID uuid);
 
     /**
-     * Inserts new account to this repository.
-     *
-     * @param account Account to be inserted.
-     * @return Future responsible for inserting given account.
-     */
-    @NotNull
-    CompletableFuture<Void> insertAccount(Account account);
-
-    /**
-     * Updates existing account in this repository.
+     * Updates account or inserts new into this repository.
      *
      * @param account Account to be updated.
      * @return Future responsible for updating given account.

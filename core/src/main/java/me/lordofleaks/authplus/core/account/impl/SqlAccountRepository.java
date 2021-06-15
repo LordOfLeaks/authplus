@@ -45,9 +45,9 @@ public abstract class SqlAccountRepository implements AccountRepository {
             stmt.execute("CREATE TABLE IF NOT EXISTS `authplus_account` (" +
                     "`id_most` BIGINT NOT NULL, " +
                     "`id_least` BIGINT NOT NULL, " +
-                    "`name` VARCHAR(16) UNIQUE NOT NULL, " +
-                    "`password` BLOB(64) NOT NULL, " +
-                    "`salt` BLOB(16) NOT NULL, " +
+                    "`name` VARCHAR(16) NOT NULL UNIQUE, " +
+                    "`password` BLOB(64) NULL, " +
+                    "`salt` BLOB(16) NULL, " +
                     "`premium` TINYINT(1) NOT NULL, " +
                     "PRIMARY KEY(`id_most`, `id_least`)" +
                     ");");
@@ -57,7 +57,33 @@ public abstract class SqlAccountRepository implements AccountRepository {
     }
 
     @Override
-    public @NotNull CompletableFuture<Account> getAccountByUuid(UUID uuid) {
+    public @NotNull CompletableFuture<Account> getAccountByName(String name) {
+        return CompletableFuture.supplyAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement("SELECT * FROM `authplus_account`" +
+                         " WHERE `name`=?;")) {
+                stmt.setString(1, name);
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (rs.next()) {
+                        Account acc = new Account(
+                                new UUID(rs.getLong("id_most"), rs.getLong("id_least")));
+                        acc.setName(name);
+                        acc.setRegisteredPremium(rs.getBoolean("premium"));
+                        acc.setPassword(rs.getBytes("password"));
+                        acc.setSalt(rs.getBytes("salt"));
+                        acc.setRegistered(true);
+                        return acc;
+                    }
+                    return null;
+                }
+            } catch (Exception e) {
+                throw new AccountRepositoryException("Cannot get account by uuid", e);
+            }
+        }, getExecutor());
+    }
+
+    @Override
+    public @NotNull CompletableFuture<Account> getAccountByUniqueId(UUID uuid) {
         return CompletableFuture.supplyAsync(() -> {
             try (Connection conn = dataSource.getConnection();
                  PreparedStatement stmt = conn.prepareStatement("SELECT * FROM `authplus_account`" +
@@ -71,6 +97,7 @@ public abstract class SqlAccountRepository implements AccountRepository {
                         acc.setRegisteredPremium(rs.getBoolean("premium"));
                         acc.setPassword(rs.getBytes("password"));
                         acc.setSalt(rs.getBytes("salt"));
+                        acc.setRegistered(true);
                         return acc;
                     }
                     return null;
@@ -82,14 +109,14 @@ public abstract class SqlAccountRepository implements AccountRepository {
     }
 
     @Override
-    public @NotNull CompletableFuture<Void> insertAccount(Account account) {
+    public @NotNull CompletableFuture<Void> updateAccount(Account account) {
         String name = account.getName();
-        byte[] passwd = account.getPassword().clone();
-        byte[] salt = account.getSalt().clone();
+        byte[] passwd = account.getPassword();
+        byte[] salt = account.getSalt();
         boolean premium = account.isRegisteredPremium();
         return CompletableFuture.runAsync(() -> {
             try (Connection conn = dataSource.getConnection();
-                 PreparedStatement stmt = conn.prepareStatement("INSERT INTO" +
+                 PreparedStatement stmt = conn.prepareStatement("REPLACE INTO" +
                          " `authplus_account`(`id_most`,`id_least`,`name`,`password`,`salt`,`premium`) VALUES(?,?,?,?,?,?)")) {
                 stmt.setLong(1, account.getUniqueId().getMostSignificantBits());
                 stmt.setLong(2, account.getUniqueId().getLeastSignificantBits());
@@ -103,11 +130,11 @@ public abstract class SqlAccountRepository implements AccountRepository {
             }
         }, getExecutor());
     }
-
+/*
     @Override
     public @NotNull CompletableFuture<Void> updateAccount(Account account) {
-        byte[] passwd = account.getPassword().clone();
-        byte[] salt = account.getSalt().clone();
+        byte[] passwd = account.getPassword();
+        byte[] salt = account.getSalt();
         boolean premium = account.isRegisteredPremium();
         return CompletableFuture.runAsync(() -> {
             try (Connection conn = dataSource.getConnection();
@@ -124,5 +151,5 @@ public abstract class SqlAccountRepository implements AccountRepository {
                 throw new AccountRepositoryException("Cannot get account by uuid", e);
             }
         }, getExecutor());
-    }
+    }*/
 }

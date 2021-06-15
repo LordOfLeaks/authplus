@@ -8,6 +8,5 @@ authplus:
     database: "testdb"
     host: "localhost"
     port: 3333
-  bungee-cord: false
   deop-on-join: false
   allowed-login-commands: []

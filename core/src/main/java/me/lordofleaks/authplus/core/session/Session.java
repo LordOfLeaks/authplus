@@ -1,42 +1,30 @@
 package me.lordofleaks.authplus.core.session;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
-import lombok.Value;
+import me.lordofleaks.authplus.core.account.Account;
+import org.jetbrains.annotations.NotNull;
 
+import java.util.UUID;
+
+@EqualsAndHashCode
 @Getter
 @Setter
-@RequiredArgsConstructor
 public class Session {
 
     /**
-     * Name of the session holder.
+     * The session holder.
      */
-    private final String accountName;
+    @NotNull
+    private final Account account;
     /**
-     * Whether this session was created by user who first joined the server with premium account.
+     * Whether this session was authorized either by login or premium account.
      */
-    private boolean registeredPremium;
-    /**
-     * Whether this session was created by user whose name is associated with any premium account.
-     */
-    private boolean playerNamePremium;
-    /**
-     * Whether this session was authorised either by login or premium account.
-     */
-    private boolean authorised;
-    /**
-     * Whether the session holder is registered.
-     */
-    private boolean registered;
-    /**
-     * Password hash of the session holder.
-     */
-    private byte[] accountPassword;
-    /**
-     * Password salt of the session holder.
-     */
-    private byte[] salt;
+    private boolean authorized;
 
+    public Session(@JsonProperty("account") @NotNull Account account) {
+        this.account = account;
+    }
 }
