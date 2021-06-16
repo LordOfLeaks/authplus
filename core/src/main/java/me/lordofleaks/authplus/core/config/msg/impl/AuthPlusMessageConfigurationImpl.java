@@ -47,8 +47,8 @@ public class AuthPlusMessageConfigurationImpl implements AuthPlusMessageConfigur
     @Override
     public void load(Path path) {
         YAMLFactory factory = new YAMLFactory();
-        factory.enable(YAMLGenerator.Feature.SPLIT_LINES);
         factory.enable(YAMLGenerator.Feature.INDENT_ARRAYS);
+        factory.disable(YAMLGenerator.Feature.SPLIT_LINES);
         factory.disable(YAMLGenerator.Feature.WRITE_DOC_START_MARKER);
         ObjectMapper mapper = new ObjectMapper(factory);
         mapper.enable(SerializationFeature.INDENT_OUTPUT);
