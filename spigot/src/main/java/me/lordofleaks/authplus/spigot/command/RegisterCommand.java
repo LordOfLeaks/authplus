@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import me.lordofleaks.authplus.core.AuthPlusCore;
 import me.lordofleaks.authplus.core.account.Account;
+import me.lordofleaks.authplus.core.config.msg.MessageArg;
 import me.lordofleaks.authplus.core.session.Session;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -12,8 +13,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
-@RequiredArgsConstructor
-public class RegisterCommand implements CommandExecutor {
+public class RegisterCommand extends SessionAwareCommand {
 
     @AllArgsConstructor
     private static class SaltAndHash {
@@ -26,26 +26,38 @@ public class RegisterCommand implements CommandExecutor {
     private final JavaPlugin plugin;
     private final AuthPlusCore core;
 
+    public RegisterCommand(JavaPlugin plugin, AuthPlusCore core) {
+        super(core);
+        this.plugin = plugin;
+        this.core = core;
+        this.core.getMessageConfiguration().registerMessage("command-register-already-registered",
+                "&cYou are already registered.");
+        this.core.getMessageConfiguration().registerMessage("command-register-passwords-dont-match",
+                "&cPasswords do not match.");
+        this.core.getMessageConfiguration().registerMessage("command-register-success",
+                "&aRegistered successfully.");
+        this.core.getMessageConfiguration().registerMessage("command-register-session-update-failed",
+                "&cSession update failed.");
+        this.core.getMessageConfiguration().registerMessage("command-register-usage",
+                "&cUse: /%enteredCommand% <password> <repeat password>.");
+        this.core.getMessageConfiguration().registerMessage("command-register-password-too-short",
+                "&cPassword has to have a minimum of 6 characters.");
+    }
+
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!(sender instanceof Player)) {
-            sender.sendMessage("Must be executed by a player");
-            return false;
-        }
-        Player player = (Player) sender;
-        Session session = core.getSessionStorage().getSessionByAccount(player.getUniqueId());
-        if (session == null) {
-            sender.sendMessage("Hang on! We are fetching your login data...");
-            return true;
-        }
+    public boolean onCommand(Player sender, Session session, String label, String[] args) {
         if (session.getAccount().isRegistered()) {
-            sender.sendMessage("You are already registered.");
+            sender.sendMessage(core.getMessageConfiguration().getMessage("command-register-already-registered"));
             return true;
         }
         if (args.length == 2) {
             String password = args[0];
             if (!password.equals(args[1])) {
-                sender.sendMessage("Passwords do not match.");
+                sender.sendMessage(core.getMessageConfiguration().getMessage("command-register-passwords-dont-match"));
+                return true;
+            }
+            if(password.length() < 6) {
+                sender.sendMessage(core.getMessageConfiguration().getMessage("command-register-password-too-short"));
                 return true;
             }
             core.getPasswordHasher().generateSalt().thenCompose(salt ->
@@ -58,21 +70,19 @@ public class RegisterCommand implements CommandExecutor {
                     session.getAccount().setPassword(saltAndHash.hash);
                     session.getAccount().setRegistered(true);
                     session.setAuthorized(true);
-                    Account account = new Account(player.getUniqueId());
-                    account.setSalt(saltAndHash.salt);
-                    account.setPassword(saltAndHash.hash);
                     core.getCommunicator().updateSessionAndAccount(session).thenRun(() ->
-                        player.sendMessage("Registered successfully.")
+                        sender.sendMessage(core.getMessageConfiguration().getMessage("command-register-success"))
                     ).exceptionally(e -> {
                         e.printStackTrace();
-                        player.sendMessage("Session and account update failed");
+                        sender.sendMessage(core.getMessageConfiguration().getMessage("command-register-session-update-failed"));
                         return null;
                     });
                 });
             });
             return true;
         }
-        sender.sendMessage("/" + label + " <password> <repeat password>");
+        sender.sendMessage(core.getMessageConfiguration().getMessage("command-register-usage",
+                MessageArg.of("enteredCommand", label)));
         return true;
     }
 }

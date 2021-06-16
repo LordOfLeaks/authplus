@@ -17,10 +17,12 @@ public class AuthPlusPluginMessageListener implements Listener {
     @EventHandler
     public void onMessage(PluginMessageEvent event) {
         if(event.getTag().equals(Communicator.CHANNEL_NAME)) {
-            System.out.println(event.toString());
-            System.out.println(event.getReceiver().getClass().toGenericString());
            if(event.getReceiver() instanceof ProxiedPlayer) {
-                core.getCommunicator().handleRead(((ProxiedPlayer) event.getReceiver()).getUniqueId(), event.getData().clone());
+                core.getCommunicator().handleRead(((ProxiedPlayer) event.getReceiver()).getUniqueId(), event.getData().clone())
+                        .exceptionally(ex -> {
+                            ex.printStackTrace();
+                            return null;
+                        });
             }
         }
     }

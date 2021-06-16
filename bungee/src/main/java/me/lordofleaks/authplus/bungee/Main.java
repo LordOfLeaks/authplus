@@ -7,6 +7,7 @@ import me.lordofleaks.authplus.core.AuthPlusCore;
 import me.lordofleaks.authplus.core.AuthPlusLoader;
 import me.lordofleaks.authplus.core.comm.Communicator;
 import me.lordofleaks.authplus.core.config.AuthPlusConfiguration;
+import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.ProxyServer;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.plugin.Plugin;
@@ -20,11 +21,13 @@ public class Main extends Plugin {
     @Override
     public void onEnable() {
         AuthPlusConfiguration configuration = AuthPlusConfiguration.load(getDataFolder().toPath().resolve("config.yml"));
-        core = AuthPlusLoader.load(getDataFolder().toPath(), configuration);
+        core = AuthPlusLoader.load(getDataFolder().toPath(), configuration, true);
 
         getProxy().registerChannel(Communicator.CHANNEL_NAME);
         getProxy().getPluginManager().registerListener(this, new LoginListener(this, core));
         getProxy().getPluginManager().registerListener(this, new PreAuthListener(core));
+        initCommunicator(core);
+        core.getMessageConfiguration().load(getDataFolder().toPath().resolve("messages.yml"));
     }
 
     private void initCommunicator(AuthPlusCore core) {

@@ -17,7 +17,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.List;
@@ -95,8 +94,30 @@ public class AuthPlusConfiguration {
         }
     }
 
-    private Encryption encryption = new Encryption();
-    private Storage storage = new Storage();
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Data
+    public static class Password {
+
+        @JsonProperty("should-contain-special-characters")
+        private boolean shouldContainSpecialCharacters;
+        @JsonProperty("should-contain-upper-and-lower-case")
+        private boolean shouldContainUpperAndLowerCase;
+        @JsonProperty("password-minimum-length")
+        private int passwordMinimumLength;
+
+        private void fillDefaults() {
+            this.passwordMinimumLength = 6;
+        }
+
+        private void validate() {
+            must(passwordMinimumLength > 0, "Password minimum length must be greater than 0.");
+        }
+    }
+
+    private Encryption encryption;
+    private Storage storage;
+    private Password password;
 
     @JsonProperty("deop-on-join")
     private boolean deOpOnJoin;
@@ -111,6 +132,8 @@ public class AuthPlusConfiguration {
         this.storage.fillDefaults();
         this.encryption = new Encryption();
         this.encryption.fillDefaults();
+        this.password = new Password();
+        this.password.fillDefaults();
     }
 
     /**
@@ -163,6 +186,9 @@ public class AuthPlusConfiguration {
 
         must(storage != null, "Storage section must be defined.");
         storage.validate();
+
+        must(password != null, "Password section must be defined.");
+        password.validate();
     }
 
     private static void must(boolean b, String failMsg) {

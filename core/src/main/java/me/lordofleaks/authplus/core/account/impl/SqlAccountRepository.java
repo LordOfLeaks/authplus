@@ -1,6 +1,6 @@
 package me.lordofleaks.authplus.core.account.impl;
 
-import com.zaxxer.hikari.HikariDataSource;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import me.lordofleaks.authplus.core.account.Account;
 import me.lordofleaks.authplus.core.account.AccountRepository;
 import me.lordofleaks.authplus.core.account.AccountRepositoryException;
@@ -124,15 +124,45 @@ public abstract class SqlAccountRepository implements AccountRepository {
                 stmt.setBytes(4, passwd);
                 stmt.setBytes(5, salt);
                 stmt.setBoolean(6, premium);
-                stmt.execute();
+                stmt.executeUpdate();
+                System.out.println("Inserted account " + account.toString());
+            } catch (Exception e) {
+                throw new AccountRepositoryException("Cannot get account by uuid", e);
+            }
+        }, getExecutor());
+        /*return getAccountByUniqueId(account.getUniqueId()).thenCompose(res -> {
+            if(res == null) {
+                return sqlInsertAccount(account);
+            } else {
+                return sqlUpdateAccount(account);
+            }
+        });*/
+    }
+
+    private CompletableFuture<Void> sqlInsertAccount(Account account) {
+        String name = account.getName();
+        byte[] passwd = account.getPassword();
+        byte[] salt = account.getSalt();
+        boolean premium = account.isRegisteredPremium();
+        return CompletableFuture.runAsync(() -> {
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement stmt = conn.prepareStatement("INSERT INTO" +
+                         " `authplus_account`(`id_most`,`id_least`,`name`,`password`,`salt`,`premium`) VALUES(?,?,?,?,?,?)")) {
+                stmt.setLong(1, account.getUniqueId().getMostSignificantBits());
+                stmt.setLong(2, account.getUniqueId().getLeastSignificantBits());
+                stmt.setString(3, name);
+                stmt.setBytes(4, passwd);
+                stmt.setBytes(5, salt);
+                stmt.setBoolean(6, premium);
+                stmt.executeUpdate();
+                System.out.println("Inserted account " + account.toString());
             } catch (Exception e) {
                 throw new AccountRepositoryException("Cannot get account by uuid", e);
             }
         }, getExecutor());
     }
-/*
-    @Override
-    public @NotNull CompletableFuture<Void> updateAccount(Account account) {
+
+    private CompletableFuture<Void> sqlUpdateAccount(Account account) {
         byte[] passwd = account.getPassword();
         byte[] salt = account.getSalt();
         boolean premium = account.isRegisteredPremium();
@@ -146,10 +176,11 @@ public abstract class SqlAccountRepository implements AccountRepository {
                 stmt.setBoolean(4, premium);
                 stmt.setLong(5, account.getUniqueId().getMostSignificantBits());
                 stmt.setLong(6, account.getUniqueId().getLeastSignificantBits());
-                stmt.execute();
+                stmt.executeUpdate();
+                System.out.println("Updated account " + account.toString());
             } catch (Exception e) {
                 throw new AccountRepositoryException("Cannot get account by uuid", e);
             }
         }, getExecutor());
-    }*/
+    }
 }

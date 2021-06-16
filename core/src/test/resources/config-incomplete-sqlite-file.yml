@@ -3,6 +3,10 @@ authplus:
     iteration-count: 4000
   storage:
     type: "SQLITE"
+  password:
+    should-contain-special-characters: true
+    should-contain-upper-and-lower-case: false
+    password-minimum-length: 4
   deop-on-join: false
   allowed-login-commands:
     - "/somecommand"

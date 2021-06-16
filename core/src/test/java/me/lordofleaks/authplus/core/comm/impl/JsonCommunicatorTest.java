@@ -2,6 +2,7 @@ package me.lordofleaks.authplus.core.comm.impl;
 
 import me.lordofleaks.authplus.core.AuthPlusCore;
 import me.lordofleaks.authplus.core.account.Account;
+import me.lordofleaks.authplus.core.account.AccountRepository;
 import me.lordofleaks.authplus.core.comm.AuthPlusCommunicationException;
 import me.lordofleaks.authplus.core.comm.Communicator;
 import me.lordofleaks.authplus.core.session.Session;
@@ -20,8 +21,9 @@ class JsonCommunicatorTest {
 
     @Test
     void testCommunicatorSetSenderTwice() {
-        AuthPlusCore core = mock(AuthPlusCore.class);
-        Communicator comm = new JsonCommunicator(core, 1);
+        SessionStorage sessionStorage = mock(SessionStorage.class);
+        AccountRepository repo = mock(AccountRepository.class);
+        Communicator comm = new JsonCommunicator(sessionStorage, repo, 1);
         comm.initializeSender((id, data) -> CompletableFuture.completedFuture(null));
         assertThrows(AuthPlusCommunicationException.class, () -> comm.initializeSender((id, data) -> CompletableFuture.completedFuture(null)));
         comm.close();
@@ -29,9 +31,9 @@ class JsonCommunicatorTest {
 
     @Test
     void testCommunicatorSendError() {
-        AuthPlusCore core = mock(AuthPlusCore.class);
-
-        Communicator comm = new JsonCommunicator(core, 1);
+        SessionStorage sessionStorage = mock(SessionStorage.class);
+        AccountRepository repo = mock(AccountRepository.class);
+        Communicator comm = new JsonCommunicator(sessionStorage, repo, 1);
         comm.initializeSender((id, data) -> {
             throw new RuntimeException("error");
         });
@@ -41,20 +43,44 @@ class JsonCommunicatorTest {
     }
 
     @Test
-    void testCommunicatorGetSession() {
+    void testCommunicatorUpdateSession() {
         SessionStorage storage = mock(SessionStorage.class);
-        AuthPlusCore core = mock(AuthPlusCore.class);
+        AccountRepository repo = mock(AccountRepository.class);
 
         Session testSession = new Session(new Account(UUID.fromString("7e97798a-d700-4928-a510-0608b4c2e7cd")));
         Session otherSession = new Session(new Account(UUID.fromString("9cd125ba-3277-48e9-8ddd-6936fa0b4b81")));
 
-        when(core.getSessionStorage()).thenReturn(storage);
+        when(repo.updateAccount(any())).thenReturn(CompletableFuture.completedFuture(null));
+
+        Communicator client = new JsonCommunicator(storage, repo, 1);
+        Communicator server = new JsonCommunicator(storage, repo, 1);
+        server.initializeSender(client::handleRead);
+        client.initializeSender(server::handleRead);
+
+        client.updateSession(testSession).join();
+        verify(storage).replaceSession(eq(testSession));
+        client.updateSessionAndAccount(otherSession).join();
+        verify(storage).replaceSession(eq(otherSession));
+        verify(repo).updateAccount(eq(otherSession.getAccount()));
+
+        client.close();
+        server.close();
+    }
+
+    @Test
+    void testCommunicatorGetSession() {
+        SessionStorage storage = mock(SessionStorage.class);
+        AccountRepository repo = mock(AccountRepository.class);
+
+        Session testSession = new Session(new Account(UUID.fromString("7e97798a-d700-4928-a510-0608b4c2e7cd")));
+        Session otherSession = new Session(new Account(UUID.fromString("9cd125ba-3277-48e9-8ddd-6936fa0b4b81")));
+
         when(storage.getSessionByAccount(any(UUID.class))).thenReturn(null);
         when(storage.getSessionByAccount(eq(UUID.fromString("7e97798a-d700-4928-a510-0608b4c2e7cd")))).thenReturn(testSession);
         when(storage.getSessionByAccount(eq(UUID.fromString("9cd125ba-3277-48e9-8ddd-6936fa0b4b81")))).thenReturn(otherSession);
 
-        Communicator client = new JsonCommunicator(core, 1);
-        Communicator server = new JsonCommunicator(core, 1);
+        Communicator client = new JsonCommunicator(storage, repo, 1);
+        Communicator server = new JsonCommunicator(storage, repo, 1);
         server.initializeSender(client::handleRead);
         client.initializeSender(server::handleRead);
 
@@ -68,13 +94,12 @@ class JsonCommunicatorTest {
     @Test
     void testCommunicatorTimeoutOnReceive() {
         SessionStorage storage = mock(SessionStorage.class);
-        AuthPlusCore core = mock(AuthPlusCore.class);
+        AccountRepository repository = mock(AccountRepository.class);
 
-        when(core.getSessionStorage()).thenReturn(storage);
         when(storage.getSessionByAccount(any(UUID.class))).thenReturn(null);
 
-        Communicator client = new JsonCommunicator(core, 0);
-        Communicator server = new JsonCommunicator(core, 1);
+        Communicator client = new JsonCommunicator(storage, repository, 0);
+        Communicator server = new JsonCommunicator(storage, repository, 1);
         server.initializeSender(client::handleRead);
         client.initializeSender(server::handleRead);
 
@@ -85,9 +110,10 @@ class JsonCommunicatorTest {
 
     @Test
     void testCommunicatorTimeoutNeverReceive() {
-        AuthPlusCore core = mock(AuthPlusCore.class);
+        SessionStorage storage = mock(SessionStorage.class);
+        AccountRepository repository = mock(AccountRepository.class);
 
-        Communicator client = new JsonCommunicator(core, 0);
+        Communicator client = new JsonCommunicator(storage, repository, 0);
         client.initializeSender((acc, data) -> CompletableFuture.completedFuture(null));
 
         assertThrows(CompletionException.class, () -> client.getSession(UUID.randomUUID()).join());

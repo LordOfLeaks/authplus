@@ -30,6 +30,8 @@ public class MojangApiImpl implements MojangApi {
                 conn.setConnectTimeout(5000);
                 conn.setReadTimeout(5000);
                 conn.connect();
+                if(conn.getResponseCode() == 204) //no content
+                    return null;
 
                 String response;
                 try (InputStream inputStream = conn.getInputStream()) {
@@ -40,6 +42,8 @@ public class MojangApiImpl implements MojangApi {
                     }
                     response = new String(result.toByteArray(), StandardCharsets.UTF_8);
                 }
+                if(conn.getResponseCode() != 200)
+                    throw new MojangApiException("Request failed! Response: " + response);
                 return responseParser.parseUuidResponse(response);
             } catch (Exception e) {
                 throw new MojangApiException("Cannot get unique id by name", e);

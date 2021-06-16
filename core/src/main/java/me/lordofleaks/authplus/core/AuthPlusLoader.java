@@ -20,10 +20,10 @@ public class AuthPlusLoader {
      * @param config Config of loaded AuthPlusCore.
      * @return Loaded AuthPlusCore.
      */
-    public static AuthPlusCore load(Path workdir, AuthPlusConfiguration config) {
+    public static AuthPlusCore load(Path workdir, AuthPlusConfiguration config, boolean database) {
         Iterator<AuthPlusCoreFactory> factories = coreFactories.iterator();
         if(!factories.hasNext())
             throw new AuthPlusException("Cannot find any core factories.");
-        return factories.next().newCore(workdir, config);
+        return factories.next().newCore(workdir, config, database);
     }
 }

@@ -24,7 +24,7 @@ public class Main extends JavaPlugin {
     @Override
     public void onEnable() {
         AuthPlusConfiguration configuration = AuthPlusConfiguration.load(getDataFolder().toPath().resolve("config.yml"));
-        core = AuthPlusLoader.load(getDataFolder().toPath(), configuration);
+        core = AuthPlusLoader.load(getDataFolder().toPath(), configuration, !SpigotConfig.bungee);
 
         getCommand("login").setExecutor(new LoginCommand(this, core));
         getCommand("register").setExecutor(new RegisterCommand(this, core));
@@ -32,6 +32,7 @@ public class Main extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new LoginListener(this, core, !SpigotConfig.bungee), this);
         getServer().getPluginManager().registerEvents(new PreAuthListener(core), this);
         setupCommunicator(core);
+        core.getMessageConfiguration().load(getDataFolder().toPath().resolve("messages.yml"));
     }
 
     private void setupCommunicator(AuthPlusCore core) {
@@ -56,7 +57,10 @@ public class Main extends JavaPlugin {
         } else {
             //establish local connection - all requests will be handled by this server
             core.getCommunicator().initializeSender((accountId, data) -> {
-                core.getCommunicator().handleRead(accountId, data);
+                core.getCommunicator().handleRead(accountId, data).exceptionally(ex -> {
+                    ex.printStackTrace();
+                    return null;
+                });
                 return CompletableFuture.completedFuture(null);
             });
         }

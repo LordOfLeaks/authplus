@@ -1,6 +1,7 @@
 package me.lordofleaks.authplus.bungee.listener;
 
 import me.lordofleaks.authplus.core.AuthPlusCore;
+import me.lordofleaks.authplus.core.config.msg.MessageArg;
 import me.lordofleaks.authplus.core.session.Session;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.connection.PendingConnection;
@@ -25,31 +26,37 @@ public class LoginListener implements Listener {
     public LoginListener(Plugin plugin, AuthPlusCore core) {
         this.plugin = plugin;
         this.core = core;
+        this.core.getMessageConfiguration().registerMessage("login-invalid-account-name", "&cAccount name \"%accountName%\" is invalid.");
+        this.core.getMessageConfiguration().registerMessage("login-perform-login-failed", "&cLogin failed due to database error.\n&cPlease try again in a minute.");
     }
 
     @EventHandler
     public void onPreLogin(PreLoginEvent event) {
         if (!core.getAccountValidator().isAccountNameValid(event.getConnection().getName())) {
             event.setCancelled(true);
-            event.setCancelReason("Invalid name");
+            event.setCancelReason(core.getMessageConfiguration().getMessage("login-invalid-account-name",
+                    MessageArg.of("accountName", event.getConnection().getName()))
+            );
             return;
         }
-
+        if(core.getLoginEngine() == null) {
+            event.setCancelled(true);
+            event.setCancelReason("Login engine not initialized.");
+            return;
+        }
         event.registerIntent(plugin);
         core.getLoginEngine().performLogin(event.getConnection().getName(), (name) ->
                 UUID.nameUUIDFromBytes((name + System.currentTimeMillis()).getBytes(StandardCharsets.UTF_8))
         ).thenAccept(session -> {
             event.getConnection().setOnlineMode(session.getAccount().isRegisteredPremium());
-            if (session.getAccount().isRegisteredPremium()) {
-                session.setAuthorized(true);
-            } else {
+            if (!event.getConnection().isOnlineMode()) {
                 event.getConnection().setUniqueId(session.getAccount().getUniqueId());
             }
             pendingSessions.put(event.getConnection(), session);
             event.completeIntent(plugin);
         }).exceptionally(ex -> {
             ex.printStackTrace();
-            event.setCancelReason("Exception in fetching from account repository");
+            event.setCancelReason(core.getMessageConfiguration().getMessage("login-perform-login-failed"));
             event.setCancelled(true);
             event.completeIntent(plugin);
             return null;

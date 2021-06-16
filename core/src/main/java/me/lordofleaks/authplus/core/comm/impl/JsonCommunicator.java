@@ -2,12 +2,16 @@ package me.lordofleaks.authplus.core.comm.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import me.lordofleaks.authplus.core.AuthPlusCore;
-import me.lordofleaks.authplus.core.comm.*;
+import lombok.RequiredArgsConstructor;
+import me.lordofleaks.authplus.core.account.AccountRepository;
+import me.lordofleaks.authplus.core.comm.AuthPlusCommunicationException;
+import me.lordofleaks.authplus.core.comm.CommunicationSender;
+import me.lordofleaks.authplus.core.comm.Communicator;
 import me.lordofleaks.authplus.core.comm.impl.model.GetSessionRequest;
 import me.lordofleaks.authplus.core.comm.impl.model.GetSessionResponse;
 import me.lordofleaks.authplus.core.comm.impl.model.UpdateSessionRequest;
 import me.lordofleaks.authplus.core.session.Session;
+import me.lordofleaks.authplus.core.session.SessionStorage;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -25,7 +29,8 @@ public class JsonCommunicator implements Communicator {
     private static final AtomicLong requestNextId = new AtomicLong();
     private final ScheduledExecutorService callbackEvictExecutor;
     private final ConcurrentHashMap<String, SessionCallback> sessionCallbacks = new ConcurrentHashMap<>();
-    private final AuthPlusCore core;
+    private final SessionStorage sessionStorage;
+    private final AccountRepository accountRepository;
     private final ObjectMapper mapper = new ObjectMapper();
     private final long timeoutMillis;
     private CommunicationSender sender;
@@ -41,8 +46,17 @@ public class JsonCommunicator implements Communicator {
         }
     }
 
-    public JsonCommunicator(AuthPlusCore core, int timeoutSeconds) {
-        this.core = core;
+    @RequiredArgsConstructor
+    private static class IdAndJson {
+
+        private final int id;
+        private final String json;
+
+    }
+
+    public JsonCommunicator(SessionStorage sessionStorage, AccountRepository accountRepository, int timeoutSeconds) {
+        this.sessionStorage = sessionStorage;
+        this.accountRepository = accountRepository;
         this.timeoutMillis = TimeUnit.SECONDS.toMillis(timeoutSeconds);
         this.callbackEvictExecutor = Executors.newSingleThreadScheduledExecutor();
         this.callbackEvictExecutor.scheduleAtFixedRate(this::evictSessionCallbacks, 0, 1, TimeUnit.SECONDS);
@@ -50,25 +64,25 @@ public class JsonCommunicator implements Communicator {
 
     @Override
     public CompletableFuture<Void> handleRead(UUID accountId, byte[] data) {
-        return CompletableFuture.runAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             ByteBuffer buf = ByteBuffer.wrap(data);
             int id = buf.getInt();
             byte[] jsonRaw = new byte[buf.remaining()];
             buf.get(jsonRaw);
             String json = new String(jsonRaw, StandardCharsets.UTF_8);
             System.out.println("Received message #" + id + " with data: " + json);
+            return new IdAndJson(id, json);
+        }).thenCompose(idAndJson -> {
+            int id = idAndJson.id;
+            String json = idAndJson.json;
             try {
                 switch (id) {
-                    case GetSessionRequest.ID: {
-                        handleGetSessionRequest(mapper.readValue(json, GetSessionRequest.class));
-                        return;
-                    }
+                    case GetSessionRequest.ID:
+                        return handleGetSessionRequest(mapper.readValue(json, GetSessionRequest.class));
                     case GetSessionResponse.ID:
-                        handleGetSessionResponse(mapper.readValue(json, GetSessionResponse.class));
-                        return;
+                        return handleGetSessionResponse(mapper.readValue(json, GetSessionResponse.class));
                     case UpdateSessionRequest.ID:
-                        handleUpdateSessionRequest(mapper.readValue(json, UpdateSessionRequest.class));
-                        return;
+                        return handleUpdateSessionRequest(mapper.readValue(json, UpdateSessionRequest.class));
                 }
             } catch (Exception e) {
                 throw new AuthPlusCommunicationException("Read failed", e);
@@ -77,28 +91,34 @@ public class JsonCommunicator implements Communicator {
         });
     }
 
-    private void handleGetSessionRequest(GetSessionRequest req) throws JsonProcessingException {
-        Session session = core.getSessionStorage().getSessionByAccount(req.getAccountId());
+    private CompletableFuture<Void> handleGetSessionRequest(GetSessionRequest req) {
+        Session session = sessionStorage.getSessionByAccount(req.getAccountId());
         GetSessionResponse response = new GetSessionResponse();
         response.setReqId(req.getReqId());
         response.setSession(session);
-        sender.sendAsync(req.getAccountId(), writeOut(GetSessionResponse.ID, mapper.writeValueAsString(response)));
+        return writeOut(req.getAccountId(), GetSessionResponse.ID, response);
     }
 
-    private void handleGetSessionResponse(GetSessionResponse req) {
+    private CompletableFuture<Void> handleGetSessionResponse(GetSessionResponse req) {
         evictSessionCallbacks();
         SessionCallback callback = sessionCallbacks.remove(req.getReqId());
         if (callback != null)
             callback.cb.complete(req.getSession());
+        return CompletableFuture.completedFuture(null);
     }
 
-    private void handleUpdateSessionRequest(UpdateSessionRequest req) {
+    private CompletableFuture<Void> handleUpdateSessionRequest(UpdateSessionRequest req) {
         if (req.getSession() == null) {
-            throw new IllegalArgumentException("Session must be provided");
+            throw new AuthPlusCommunicationException("Session must be provided");
         }
-        core.getSessionStorage().insertSession(req.getSession());
+        sessionStorage.replaceSession(req.getSession());
         if (req.isUpdateAccount()) {
-            core.getAccountRepository().updateAccount(req.getSession().getAccount());
+            if (accountRepository == null) {
+                throw new AuthPlusCommunicationException("Account repository not initialized");
+            }
+            return accountRepository.updateAccount(req.getSession().getAccount());
+        } else {
+            return CompletableFuture.completedFuture(null);
         }
     }
 
@@ -118,15 +138,10 @@ public class JsonCommunicator implements Communicator {
             request.setAccountId(accountId);
             evictSessionCallbacks();
             sessionCallbacks.put(request.getReqId(), new SessionCallback(future, timeoutMillis));
-            try {
-                String json = mapper.writeValueAsString(request);
-                sender.sendAsync(accountId, writeOut(GetSessionRequest.ID, json)).exceptionally((ex) -> {
-                    future.completeExceptionally(ex);
-                    return null;
-                });
-            } catch (Exception e) {
-                future.completeExceptionally(new AuthPlusCommunicationException("Get session failed", e));
-            }
+            writeOut(accountId, GetSessionRequest.ID, request).exceptionally(ex -> {
+                future.completeExceptionally(ex);
+                return null;
+            });
         });
         return future;
     }
@@ -167,23 +182,24 @@ public class JsonCommunicator implements Communicator {
         UpdateSessionRequest request = new UpdateSessionRequest();
         request.setSession(session);
         request.setUpdateAccount(updateAccount);
-        return CompletableFuture.runAsync(() -> {
-            try {
-                String json = mapper.writeValueAsString(request);
-                sender.sendAsync(session.getAccount().getUniqueId(), writeOut(UpdateSessionRequest.ID, json));
-            } catch (Exception e) {
-                throw new AuthPlusCommunicationException("Update session failed.", e);
-            }
-        });
+        return writeOut(session.getAccount().getUniqueId(), UpdateSessionRequest.ID, request);
     }
 
-    private byte[] writeOut(int id, String data) {
-        System.out.println("Writing: #" + id + " " + data);
-        byte[] bytes = data.getBytes(StandardCharsets.UTF_8);
-        ByteBuffer buf = ByteBuffer.allocate(4 + bytes.length);
-        buf.putInt(id);
-        buf.put(bytes);
-        return buf.array();
+    private CompletableFuture<Void> writeOut(UUID uuid, int id, Object obj) {
+        return CompletableFuture.supplyAsync(() -> {
+            String data;
+            try {
+                data = mapper.writeValueAsString(obj);
+            } catch (JsonProcessingException e) {
+                throw new AuthPlusCommunicationException("Cannot serialize output", e);
+            }
+            System.out.println("Writing: #" + id + " " + data);
+            byte[] bytes = data.getBytes(StandardCharsets.UTF_8);
+            ByteBuffer buf = ByteBuffer.allocate(4 + bytes.length);
+            buf.putInt(id);
+            buf.put(bytes);
+            return buf.array();
+        }).thenCompose(res -> sender.sendAsync(uuid, res));
     }
 
     @Override

@@ -10,7 +10,7 @@ import java.nio.file.Path;
 public class AuthPlusCoreImplFactory implements AuthPlusCoreFactory {
 
     @Override
-    public @NotNull AuthPlusCore newCore(Path workdir, AuthPlusConfiguration config) {
-        return new AuthPlusCoreImpl(workdir, config);
+    public @NotNull AuthPlusCore newCore(Path workdir, AuthPlusConfiguration config, boolean database) {
+        return new AuthPlusCoreImpl(workdir, config, database);
     }
 }

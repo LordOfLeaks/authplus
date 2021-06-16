@@ -1,0 +1,2 @@
+test-message: "&6Some %test% message"
+second-test-message: "&7&lSome %second% and %test% message"

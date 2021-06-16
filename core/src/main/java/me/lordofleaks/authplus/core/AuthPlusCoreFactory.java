@@ -8,6 +8,6 @@ import java.nio.file.Path;
 public interface AuthPlusCoreFactory {
 
     @NotNull
-    AuthPlusCore newCore(Path workdir, AuthPlusConfiguration config);
+    AuthPlusCore newCore(Path workdir, AuthPlusConfiguration config, boolean database);
 
 }

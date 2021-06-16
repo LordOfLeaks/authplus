@@ -3,18 +3,14 @@ package me.lordofleaks.authplus.core.login.impl;
 import lombok.RequiredArgsConstructor;
 import me.lordofleaks.authplus.core.account.Account;
 import me.lordofleaks.authplus.core.account.AccountRepository;
-import me.lordofleaks.authplus.core.account.AccountValidator;
-import me.lordofleaks.authplus.core.login.AuthPlusLoginException;
 import me.lordofleaks.authplus.core.login.LoginEngine;
 import me.lordofleaks.authplus.core.mojang.MojangApi;
 import me.lordofleaks.authplus.core.session.Session;
-import me.lordofleaks.authplus.core.session.SessionStorage;
+import org.jetbrains.annotations.NotNull;
 
-import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * LoginEngine that automatically registers premium users.
@@ -22,21 +18,19 @@ import java.util.function.Supplier;
 @RequiredArgsConstructor
 public class PremiumAwareLoginEngine implements LoginEngine {
 
-    private final AccountValidator accountValidator;
+    @NotNull
     private final AccountRepository accountRepository;
     private final MojangApi mojangApi;
 
     @Override
     public CompletableFuture<Session> performLogin(String name, Function<String, UUID> nameToUuid) {
-        if(!accountValidator.isAccountNameValid(name)) {
-            throw new AuthPlusLoginException("Provided account name is not valid.");
-        }
         return accountRepository.getAccountByName(name).thenCompose(res -> {
             if (res == null) {
                 return mojangApi.getUniqueIdByName(name).thenCompose(uuid -> {
                     if (uuid == null) {
                         //no premium user without an account
                         Account account = new Account(nameToUuid.apply(name));
+                        account.setName(name);
                         return CompletableFuture.completedFuture(new Session(account));
                     } else {
                         return accountRepository.getAccountByUniqueId(uuid).thenCompose(account -> {
@@ -46,18 +40,27 @@ public class PremiumAwareLoginEngine implements LoginEngine {
                                 acc.setName(name);
                                 acc.setRegisteredPremium(true);
                                 acc.setRegistered(true);
-                                return accountRepository.updateAccount(acc).thenApply(ignored -> new Session(acc));
+                                Session session = new Session(acc);
+                                session.setAuthorized(true);
+                                return accountRepository.updateAccount(acc).thenApply(ignored -> session);
                             } else {
                                 //premium user with account who changed their name
                                 account.setName(name);
-                                return accountRepository.updateAccount(account).thenApply(ignored -> new Session(account));
+                                Session session = new Session(account);
+                                session.setAuthorized(true);
+                                return accountRepository.updateAccount(account).thenApply(ignored -> session);
                             }
                         });
                     }
                 });
             } else {
-                //premium user who did not change his name or no premium user
-                return CompletableFuture.completedFuture(new Session(res));
+                //registered premium or no premium user
+                Session session = new Session(res);
+                if(res.isRegisteredPremium()) {
+                    session.setAuthorized(true);
+                }
+
+                return CompletableFuture.completedFuture(session);
             }
         });
     }

@@ -26,6 +26,9 @@ class AuthPlusConfigurationTest {
         assertNull(cfg.getStorage().getHost());
         assertNull(cfg.getStorage().getPort());
         assertNull(cfg.getStorage().getDatabase());
+        assertEquals(4, cfg.getPassword().getPasswordMinimumLength());
+        assertTrue(cfg.getPassword().isShouldContainSpecialCharacters());
+        assertFalse(cfg.getPassword().isShouldContainUpperAndLowerCase());
         assertFalse(cfg.isDeOpOnJoin());
     }
 
@@ -41,6 +44,9 @@ class AuthPlusConfigurationTest {
         assertEquals("localhost", cfg.getStorage().getHost());
         assertEquals(3333, cfg.getStorage().getPort());
         assertEquals("testdb", cfg.getStorage().getDatabase());
+        assertEquals(4, cfg.getPassword().getPasswordMinimumLength());
+        assertTrue(cfg.getPassword().isShouldContainSpecialCharacters());
+        assertFalse(cfg.getPassword().isShouldContainUpperAndLowerCase());
         assertFalse(cfg.isDeOpOnJoin());
     }
 
@@ -56,6 +62,9 @@ class AuthPlusConfigurationTest {
         assertEquals("localhost", cfg.getStorage().getHost());
         assertEquals(3333, cfg.getStorage().getPort());
         assertEquals("testdb", cfg.getStorage().getDatabase());
+        assertEquals(4, cfg.getPassword().getPasswordMinimumLength());
+        assertTrue(cfg.getPassword().isShouldContainSpecialCharacters());
+        assertFalse(cfg.getPassword().isShouldContainUpperAndLowerCase());
         assertFalse(cfg.isDeOpOnJoin());
     }
 
@@ -71,6 +80,9 @@ class AuthPlusConfigurationTest {
         assertEquals("localhost", cfg.getStorage().getHost());
         assertEquals(3333, cfg.getStorage().getPort());
         assertEquals("testdb", cfg.getStorage().getDatabase());
+        assertEquals(4, cfg.getPassword().getPasswordMinimumLength());
+        assertTrue(cfg.getPassword().isShouldContainSpecialCharacters());
+        assertFalse(cfg.getPassword().isShouldContainUpperAndLowerCase());
         assertFalse(cfg.isDeOpOnJoin());
     }
 
@@ -85,6 +97,11 @@ class AuthPlusConfigurationTest {
     }
 
     @Test
+    void testConfigBadPasswordMinLength() {
+        assertThrows(AuthPlusConfigException.class, () -> AuthPlusConfiguration.load(Paths.get(getClass().getClassLoader().getResource("config-bad-password-min-length.yml").toURI())));
+    }
+
+    @Test
     void testConfigIncomplete() {
         assertThrows(AuthPlusConfigException.class, () -> AuthPlusConfiguration.load(Paths.get(getClass().getClassLoader().getResource("config-incomplete-mysql-database.yml").toURI())));
         assertThrows(AuthPlusConfigException.class, () -> AuthPlusConfiguration.load(Paths.get(getClass().getClassLoader().getResource("config-incomplete-mysql-port.yml").toURI())));
@@ -92,6 +109,7 @@ class AuthPlusConfigurationTest {
         assertThrows(AuthPlusConfigException.class, () -> AuthPlusConfiguration.load(Paths.get(getClass().getClassLoader().getResource("config-incomplete-mysql-username.yml").toURI())));
         assertThrows(AuthPlusConfigException.class, () -> AuthPlusConfiguration.load(Paths.get(getClass().getClassLoader().getResource("config-incomplete-commands.yml").toURI())));
         assertThrows(AuthPlusConfigException.class, () -> AuthPlusConfiguration.load(Paths.get(getClass().getClassLoader().getResource("config-incomplete-sqlite-file.yml").toURI())));
+        assertThrows(AuthPlusConfigException.class, () -> AuthPlusConfiguration.load(Paths.get(getClass().getClassLoader().getResource("config-incomplete-password.yml").toURI())));
     }
 
     @Test
